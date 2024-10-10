@@ -11,6 +11,7 @@ readme = "README.md"
 python = "^3.12"
 fastapi = "^0.115.0"
 uvicorn = {extras = ["standard"], version = "^0.31.1"}
+pydantic = {extras = ["email"], version = "^2.9.2"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
