@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     
     #путь к файлу с базой данных
     db_url: str = f"sqlite+aiosqlite:///{BASE_DIR}/db.sqlite3"
-    db_echo: bool = True
+    # db_echo: bool = True
+    db_echo: bool = False
 
 
 #Проинициализируем настройки
