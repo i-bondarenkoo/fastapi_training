@@ -20,12 +20,12 @@ class DatabaseHelper:
         #создается фабрика сессий
         self.session_factory = async_sessionmaker(
             bind=self.engine,
-            #autoflush автоматическая подготовка к коммиту
+            #autoflush=False — отключает автоматическую отправку изменений в базу перед запросами
             autoflush=False,
-            #автоматическое сохранение
+            #autocommit=False — требует явного вызова коммита для сохранения изменений
             autocommit=False,
-            #expire_on_commit автоматическое удаление информации
-            #об объектах
+            #eexpire_on_commit=False — не удаляет объекты из сессии после коммита, 
+            # что позволяет продолжать работать с ними
             expire_on_commit=False,
         )
 
