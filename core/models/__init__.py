@@ -6,6 +6,7 @@ __all__ = (
     "db_helper",
     "DatabaseHelper",
     "User",
+    "Post",
 )
 
 #импорт чтобы другие папки и модули видели наши модели
@@ -13,3 +14,4 @@ from .base import Base
 from .product import Product
 from .db_helper import db_helper, DatabaseHelper
 from .user import User
+from .post import Post
