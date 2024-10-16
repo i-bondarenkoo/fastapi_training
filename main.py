@@ -18,8 +18,9 @@ from api_v1 import router as router_v1
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     #создание всех таблиц в приложении
-    async with db_helper.engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    #закомментируем этот код, так как теперь таблицы создаются при помощи миграций алембик
+    # async with db_helper.engine.begin() as conn:
+    #     await conn.run_sync(Base.metadata.create_all)
     yield
 
 
