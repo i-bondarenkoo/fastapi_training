@@ -49,7 +49,7 @@ def hello(name: str = "World"):
     
 
 
-
+#обработчик http запроса для маршрута /calc/add/
 @app.get("/calc/add/")
 def add( a: int, b: int):
     return {
