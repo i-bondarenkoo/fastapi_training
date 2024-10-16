@@ -61,6 +61,6 @@ class DatabaseHelper:
 
 #создадим экземпляр класса для удобства работы в дальнейшем
 db_helper = DatabaseHelper(
-    url=settings.db_url,
-    echo=settings.db_echo,
+    url=settings.db.url,
+    echo=settings.db.echo,
 )        

@@ -36,3 +36,13 @@ class Post(UserRelationMixin, Base):
     # #в таблицу постов
     
     # user: Mapped["User"] = relationship(back_populates="posts")
+    
+    
+    #для того чтобы было красивое строковое представление пользователя и данных
+    def __str__(self):
+        return f"{self.__class__.__name__} (id={self.id}, username={self.title!r}, user_id={self.user_id})"
+    
+    
+    #красивое представление в виде списка
+    def __repr__(self):
+        return str(self)
