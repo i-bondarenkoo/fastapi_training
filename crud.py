@@ -6,6 +6,8 @@ from core.models import db_helper, User, Profile, Post
 from sqlalchemy import select
 from sqlalchemy.engine import Result
 #selectinload лучше использовать для связей ко многим
+#joinedload чаще всего используют для подгрузки данных к одному
+#selectinload чаще используют для подгрузки ко многим
 from sqlalchemy.orm import joinedload, selectinload
 #создаем пользователя
 async def create_user(session: AsyncSession, username: str) -> User:
