@@ -3,6 +3,7 @@
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.models import db_helper, User, Profile, Post
+from core.models import Order, Product, OrderProductAssociation
 from sqlalchemy import select
 from sqlalchemy.engine import Result
 #selectinload лучше использовать для связей ко многим
@@ -152,58 +153,228 @@ async def get_profiles_with_users_and_users_with_posts(session: AsyncSession):
         print(profile.first_name, profile.user)
         print(profile.user.posts)
         
-        
+#функции для demo_2m2
+#создадим заказ
+async def create_order(
+        session: AsyncSession, 
+        promocode: str | None = None,
+        ) -> Order:
+        order = Order(promocode=promocode)
+
+        session.add(order)
+        await session.commit()
+
+        return order
+
+#создаем товары
+async def create_product(
+        session: AsyncSession,
+        name: str,
+        description: str,
+        price: int,
+        ) -> Product:
+
+        product = Product(
+             name=name,
+             description=description,
+             price=price,
+        )
+        session.add(product)
+        await session.commit()
+        return product
+
+async def create_orders_and_products(session: AsyncSession):
+     #создадим заказ(1)
+    order_one = await create_order(session)
+    order_promo = await create_order(session, promocode="promo")
+    #создадим товары (2)
+    product_one = await create_product(
+         session,
+         "Xleb",
+         "Vkusnii",
+         price=15,
+    )
+    product_two = await create_product(
+        session,
+         "Moloko",
+         "Normalnoe moloko",
+         price=35,
+    )
+    product_three = await create_product(
+         session,
+         "Smetana",
+         "Vkysno zaebal",
+         price=143,
+    )
+
+    #подгрузим данные
+    order_one = await session.scalar(
+         select(Order)
+         .where(Order.id == order_one.id)
+         .options(
+              selectinload(Order.products),
+        ),
+    )
+    order_promo = await session.scalar(
+         select(Order)
+         .where(Order.id == order_promo.id)
+         .options(
+              selectinload(Order.products),
+        ),
+    )
+
+    #формируем заказ, добавляя к нему продукты
+    #обычный питоновский список python list
+    order_one.products.append(product_one)
+    order_one.products.append(product_two)
+    #первый вариант
+    # order_promo.products.append(product_three)
+    # order_promo.products.append(product_two)
+    #второй вариант
+    order_promo.products = [product_three, product_two]
+
+    await session.commit()
+
+async def get_orders_with_products(session: AsyncSession) -> list[Order]:
+    stmt = (
+        select(Order)
+        .options(
+            selectinload(Order.products),
+        )
+        .order_by(Order.id)
+    )
+    orders = await session.scalars(stmt)
+
+    return list(orders)
+
+async def demo_get_orders_with_products_through_secondary(session: AsyncSession):
+    orders = await get_orders_with_products(session)
+    for order in orders:
+        print(order.id, order.promocode, order.created_at, "products:")
+        for product in order.products:  # type: Product
+            print("-", product.id, product.name, product.price)
+
+async def get_orders_with_products_assoc(session: AsyncSession) -> list[Order]:
+    stmt = (
+        select(Order)
+        .options(
+            #подгружаем информацию о связках
+            selectinload(Order.products_details).joinedload(
+                #загружаем информацию о товаре
+                OrderProductAssociation.product
+            ),
+        )
+        .order_by(Order.id)
+    )
+    orders = await session.scalars(stmt)
+
+    return list(orders)
+
+
+async def demo_get_orders_with_products_with_assoc(session: AsyncSession):
+    orders = await get_orders_with_products_assoc(session)
+
+    for order in orders:
+        print(order.id, order.promocode, order.created_at, "products:")
+        for (
+            order_product_details
+        ) in order.products_details:  # type: OrderProductAssociation
+            print(
+                "-",
+                order_product_details.product.id,
+                order_product_details.product.name,
+                order_product_details.product.price,
+                "qty:",
+                order_product_details.count,
+            )
+
+
+async def create_gift_product_for_existing_orders(session: AsyncSession):
+    orders = await get_orders_with_products_assoc(session)
+    gift_product = await create_product(
+        session,
+        name="Gift",
+        description="Gift for you",
+        price=0,
+    )
+    for order in orders:
+        order.products_details.append(
+            OrderProductAssociation(
+                count=1,
+                unit_price=0,
+                product=gift_product,
+            )
+        )
+
+    await session.commit()
+
+async def demo_m2m(session: AsyncSession):
+    await create_orders_and_products(session)
+    await demo_get_orders_with_products_through_secondary(session)
+    await demo_get_orders_with_products_with_assoc(session)
+    await create_gift_product_for_existing_orders(session)
+    
+    
+
+
+
+async def main_relations(session: AsyncSession):
+# #создаем 2 пользователей в таблице юзерс (1)
+        await create_user(session=session, username="john")
+        await create_user(session=session, username="bob")
+        # #Будем искать пользователя по имени (2)
+        user_john = await get_user_by_username(session=session, username="john")
+        user_sam = await get_user_by_username(session=session, username="sam")
+        user_bob = await get_user_by_username(session=session, username="bob")
+        # #создаем профили для пользователей (3)
+        await create_user_profile(
+            session=session,
+            user_id=user_john.id,
+            first_name="John",
+            
+            )
+        #еще 1 профиль
+        await create_user_profile(
+            session=session,
+            user_id=user_bob.id,
+            first_name="Bob",
+            last_name="White",
+            )
+        #посмотрим профили пользователей (4)
+        await show_users_with_profiles(session=session)
+        #создадим посты для пользователей (5)
+        user_john = await get_user_by_username(session=session, username="john")
+        user_bob = await get_user_by_username(session=session, username="bob")
+        user_andy = await get_user_by_username(session=session, username="andy")
+        await create_posts(
+            session,
+            user_john.id,
+            "SQLA 2.0",
+            "SqlA Joins",
+            )
+        await create_posts(
+            session,
+            user_bob.id,
+            "FastAPI intro",
+            "FastAPI Advanced",
+            "FastAPI more",
+        )
+        #выведем пользователей с постами (6)
+        await get_users_with_posts(session=session)
+        #выведем посты с авторами (7)
+        await get_posts_with_authors(session=session)
+        #загрузим пользователей с постами и профилями (8)
+        await get_users_with_posts_and_profiles(session=session)
+        #функция запрос с вложенными joins (9)
+        await get_profiles_with_users_and_users_with_posts(session=session)
+
+
+
 async def main():
     #контекстный менеджер для получения сессии и выполнения запросов (stmt)
     async with db_helper.session_factory() as session:
-        # #создаем 2 пользователей в таблице юзерс (1)
-        # # await create_user(session=session, username="john")
-        # # await create_user(session=session, username="bob")
-        # #Будем искать пользователя по имени (2)
-        # user_john = await get_user_by_username(session=session, username="john")
-        # # user_sam = await get_user_by_username(session=session, username="sam")
-        # user_bob = await get_user_by_username(session=session, username="bob")
-        # #создаем профили для пользователей (3)
-        # await create_user_profile(
-        #     session=session,
-        #     user_id=user_john.id,
-        #     first_name="John",
-            
-        #     )
-        # #еще 1 профиль
-        # await create_user_profile(
-        #     session=session,
-        #     user_id=user_bob.id,
-        #     first_name="Bob",
-        #     last_name="White",
-        #     )
-        #посмотрим профили пользователей (4)
-        # await show_users_with_profiles(session=session)
-        #создадим посты для пользователей (5)
-        # user_john = await get_user_by_username(session=session, username="john")
-        # user_bob = await get_user_by_username(session=session, username="bob")
-        # user_andy = await get_user_by_username(session=session, username="andy")
-        # await create_posts(
-        #     session,
-        #     user_john.id,
-        #     "SQLA 2.0",
-        #     "SqlA Joins",
-        #     )
-        # await create_posts(
-        #     session,
-        #     user_bob.id,
-        #     "FastAPI intro",
-        #     "FastAPI Advanced",
-        #     "FastAPI more",
-        # )
-        #выведем пользователей с постами (6)
-        # await get_users_with_posts(session=session)
-        #выведем посты с авторами (7)
-        # await get_posts_with_authors(session=session)
-        #загрузим пользователей с постами и профилями (8)
-        # await get_users_with_posts_and_profiles(session=session)
-        #функция запрос с вложенными joins (9)
-        await get_profiles_with_users_and_users_with_posts(session=session)
+        # await main_relations(session)
+        await demo_m2m(session)
         
         
 if __name__ == '__main__':

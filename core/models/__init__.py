@@ -8,6 +8,8 @@ __all__ = (
     "User",
     "Post",
     "Profile",
+    "Order",
+    "OrderProductAssociation"
 )
 
 #импорт чтобы другие папки и модули видели наши модели
@@ -17,3 +19,5 @@ from .db_helper import db_helper, DatabaseHelper
 from .user import User
 from .post import Post
 from .profile import Profile
+from .order import Order
+from .order_product_association import OrderProductAssociation
